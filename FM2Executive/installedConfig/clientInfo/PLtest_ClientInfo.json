@@ -1,0 +1,40 @@
+{
+	"COMMENT" : "Key, Storage, and Metadata Fields for client PL - to be stored in the database",
+	"clientname" : "PLtest",
+	"data" :  [
+		{
+		"type" : "info",
+		"description": "PL-clone client for testing", 
+		"key" : "my_key3",
+		"thumbnails" : false
+		},	
+		{
+			"type"	: "storage",
+			"description" : "Root paths for PLtest image index descriptor files and thumbnails",
+			"indexRoot" : "<DataStore>/index/pltest",
+			"thumbnailRoot" : ""
+			
+		},
+		{
+			"type" : "metadata",
+			"field" :  [
+				{
+					"name" : "gender", 
+					"type" : "String",
+					"valid_set" : "male|female|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "gender of person"
+				},
+				{
+					"name" : "agegroup",
+					"type" : "String",
+					"valid_set" : "adult|child|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "age group of person in the image"
+				}
+			]
+		}
+	]
+}

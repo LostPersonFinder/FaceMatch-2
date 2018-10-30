@@ -1,0 +1,99 @@
+FaceMatch2  Setup, Activation, Testing and Operational Notes for 
+Version: FM2-V1.1
+---------------------------------------------------------------
+A) Setup
+===========
+Installation Directory: <FM_InstallDir> 
+All installation scripts, commands, configuration files, FM option files and logs are located under this directory. 
+They are arranged in the specific subdirectories as described below:
+
+config:
+	1) WebFM2Server.cfg - FaceMatch Web Server Configuration file: 
+	Name specified in WebFM2's web.xml file for server configuration and startup
+	Used by the FaceMatchStartupServlet to initialize the system.
+	Points to FM2ServerLocal.cfg for initialization of lower level components
+
+	2) FM2ServerLocal.cfg - Provides all configurational parameters and required file paths at the FM2 server node
+	Used at startup time by FaceMatchStartupServlet to initialize the FMServiceManager module 
+	(Entry point) for the FM2Server. It also points to other configuration and parameter files for
+	interfacing with the Facematch library, and the FM2 database as indicated below. 
+	The lower level configuration file paths may be changed if desired.
+
+config/sql:
+	Contains all SQL scripts to create the FM2 MySQL database and related objects, as follows:
+	create_facematchDB_user.sql  --> Script for creating a user and database for Facematch2 operations 
+	facematchDBschema.sql --> defines the FaceMatch database structure and initialize it. 
+ 	set_admin.sql --> create a single administrator for the FaceMatch system and stores its MD5 password
+					  Note only an administrator can add a new client or request reindexing
+	indextype_registry.sql --> Various index types, and their descriptor file extensions used by FaceMatch lib 
+					The one to be used for indexing and querying must be specified in the FM2ServerLocal.cfg file
+	init_fmdb.sql --> combines the above two sql scripts to one, called before any other FM2/DB operation
+
+	For example:
+ 		$ mysql -u root -p<rootPassword>   --> (MySql start up as root, to create the database using it)
+		  > source create_facematchDB_user.sql
+		  > source facematchDBschema.sql
+		  > source init_fmdb.sql
+		
+-----------------------------------------------------------------------------------------------
+FFModels: 
+	Path of Facematch lib OpenCV models, optional
+fmoptions:
+	FFParameters1.json, with values of all paramater and 
+	Face find /ingest/query flags and other options to be provided to the FMLib.
+	Values of various Flags and parameters must match with FMLib C++ bit values/defaults.
+	It is recommended *not* to change these parameters and flags.
+
+log:
+	Directory for FaceMatch server logs, which are roll-over appenders.
+	Log format and max # of log files to be saved are defines in the log4j properties file.
+
+temp:
+	root directory to copy all images using their URLs for facematch operations. The copied file i
+	is deleted after the operation is completed.
+-------------------------------------------------------------------------------------------------
+<FM_InstallDir>/config/clientInfo
+	Contains specification/information about each FaceMatch2 Client (e.g. PL) as a JSON file
+	Includes: Client name (short), description, assigned key (by FM2administrator), index file root directory,
+	all searchable metadata fields and each field's valid values in JSON format
+	The FM2 administrator must invoke the Admin service provided by WebFM2, with this filename as a parameter,
+	to make each client known to the system and establish its properties dynamically.
+--------------------------------------------------------------------------------------------------
+
+NOTE: 
+It may be re-stated here that FaceMatch2 system does not store a user ingested image for facematching; 
+onle the corresponding index files, created by the FM library are stored locally. The path to each
+client's index files are provided in the corresponding ClientInfo file prior to providing service 
+to the new client. It is then recorded in the FM2 database for all operations specific to that client.
+
+
+B) Installation Steps
+=====================
+The FM2WebServer and the back-end server rely upon the configuration files stated above, 
+which should be updated to reflect an installation site's own pathnames and preferences etc.
+The Facematch library (libcommon.so), FM2Server, FM2WebServer and the FM2 database may be 
+installed according the Administrator's preference in a distributed system. 
+The fm2server.jar and webfm2.war file may be used as is, with the installation specific 
+configuration files, without changing or re-compiling the source code. However, you may also 
+recompile/rebuild them using NetBeans or Ant in a standard manner.
+
+Prodecure:
+1) Edit the accompanying configuration files and web.xml file with your installation specific file paths.
+2) Install the Facematch library libcommon.so (compiled elsewhere using its Makefile), as a Shared Library under Tomcat
+3) Compile and build the FM2 JNI library (libFaceMatchLibJni.so) and install it as a shared library under Tomcat
+4) Create and initialize the MySQL database as described in section A)
+	Specify the FM2 system administrator name/password in the database for various privileged operations
+5) Build the backend FM2Server under NetBeans or Ant, if desired. It creates the file FM2Server.jar in the 
+	corresponding "dist" directory
+6) Copy the jar file FM2Server.jar to the FM2 WebServer lib directory, if Step 5 is performed.
+7) Build the FM2WebServer webfm2.war under NetBeans or Ant.
+8) Install it as a Tomcat Web application using the Tomcat Manager.
+
+9) Issue the command: http://<your-hostname>:8080/fm2/status
+	If everythinf proceeded nomonally, it should display the Service status, 
+	FM2 and Facematch library version numbers, as well 
+	as if GPU/CUDA is being used  for face detection operations.
+	
+10) Create a test client and perform a few face ingest/match operation related to 
+	it to make sure that all componts, end-to-end are working as expected.
+-----------------------------------------------------------------------------------------------------------

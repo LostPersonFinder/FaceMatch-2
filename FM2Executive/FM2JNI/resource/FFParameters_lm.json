@@ -1,0 +1,57 @@
+{
+"XMLModelPath" : "<TopDir>/FM2-JNI_V2/FFModels/",
+"FaceModelFN" : "haarcascade_frontalface_alt2.xml",
+"ProfileModelFN" : "haarcascade_profileface.xml",
+
+"SkinColorMapperKind" : "",
+"SkinColorParmFN" : "",
+
+
+"CRegDimMin" : 16,
+"CRegDimMax" : 512,
+
+"FaceDiameterMin" : 16,
+"FaceDiameterMax" : 512,
+
+"SkinMassT" : 0.25, 
+"SkinLikelihoodT" : 0.5,
+"FaceAspectLimit" : 0.5,
+
+
+"FF_Flag_none": 0 
+"FF_Flag_bits" : {
+	"selective": 0, 		
+	"detection": 1,
+	"rotation" : 2, 		
+	"cascade"  : 3,			
+	"visual"   : 4,			
+	"verbose"  : 5,
+	"HistEQ"  : 6,
+	"discard" : 7,
+	"intersect" : 8,	
+	"sampling" : 9,
+	"skinClrFP" : 10,
+	"keepCascaded" 	: 11, 
+	"seekLandmarks"	: 12, 	
+	"seekLandmarksColor" : 13, 	
+	"visualSelective" : 14, 	
+	"saveScaled" : 15, 	
+	"saveSkinMap" : 16,
+	"saveFaces" : 17, 	
+	"subScaleCorrection" : 18
+	"LiveFeed" : 19
+	},
+"FF_defaultFlags": [
+	"selective",
+	"rotation",
+	"HistEQ",
+	"cascade",
+	"keepCascaded",
+ 	"seekLandmarks",
+	"seekLandmarksColor" 
+]
+
+
+
+}
+

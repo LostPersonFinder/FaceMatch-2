@@ -1,0 +1,225 @@
+/*
+ * This class performs read/write functions from the input/output streams 
+ * associated with HttpRequest and HttpResponse objects in a Servlet
+ */
+
+package fmservice.webapp.serverutils;
+
+
+import  fmservice.httputils.common.ServiceConstants; 
+import javax.servlet.ServletInputStream;
+import java.io.InputStream;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.FileOutputStream;
+import java.io.File;
+
+import org.apache.log4j.Logger;
+
+/**
+ *
+ * @author dmisra
+ */
+public class ServletIO implements ServiceConstants
+{
+     private static Logger log = Logger.getLogger(ServletIO.class);
+     
+     
+    /*-----------------------------------------------------------------------------------------------------------------------*/
+     /**
+     * Read data from the input stream associated with a Servlet.
+     * <p>
+     * This method  is called from the Server side only.
+     * 
+     * @param  request  Client's HTTP request containing the service parameters/values 
+     * @return  data retrieved from the input stream of the request
+     /*-----------------------------------------------------------------------------------------------------------------------*/
+
+    public static byte[] readInputData(HttpServletRequest request)
+     {             
+           String key = "Content-Length".toLowerCase();
+           int contentLength = 0;
+          
+           if (request.getHeader(key) != null)           
+                contentLength  = request.getIntHeader(key);
+           if (contentLength ==  0  && request.getMethod().equalsIgnoreCase("POST"))
+           {
+               log.error("No data  from  client received from the Request channel.");
+               return null;
+           }
+           byte[] data = null;
+           try
+           {
+                ServletInputStream is = request.getInputStream();    
+                data = readHttpInput(is, contentLength);
+           }
+            catch (Exception e)
+            {
+                log.error( "Exception in reading client data ", e);
+            }     
+            return (data);
+    }
+    
+  /*-----------------------------------------------------------------------------------------------------------------------*/
+    /**
+     * Read data from the input stream associated with a Servlet or an HTTP client as the
+     * case may be. 
+     * <p>
+     * Data is made available in chunks over the input stream, 
+     * and read it recursively until all data are fetched from the stream.
+     * <p>
+     * This method may be invoked both by the client and the server from retrieving data contents
+     * sent over a HTTP connection 
+     * 
+     * @param  is  Input stream associated with a HTTPRequest or HTTPResponse
+     * @param size  size of data in bytes to be read
+     * @return a byte array containing the  data read from the input stream
+     /*-----------------------------------------------------------------------------------------------------------------------*/
+
+    public static byte[] readHttpInput(InputStream is , int  size)
+    {         
+            byte[] dataBytes = new byte[size];     
+            int bytesLeft = size;
+
+             try
+             {              
+                 int offset = 0;                 
+                 while (bytesLeft >0)
+                 {
+                    int count = is.read(dataBytes, offset, bytesLeft);        
+                    if (count == 0)
+                        break;
+             
+                    bytesLeft = bytesLeft - count;
+                    offset = offset + count;
+                 }                 
+                
+                 if (bytesLeft != 0)
+                    log.error ( "Data transmission error: Expected " + size + "bytes, received " + (size-bytesLeft)+ " bytes");
+                 else
+                 {
+                     log.debug("Received " +size+ "bytes of data from client");
+                 }
+            }
+            catch (Exception e)
+            {
+                log.error( "Exception in reading client data ", e);
+            }     
+            return (bytesLeft == 0 ? dataBytes : null);
+     }   
+    
+      /*-----------------------------------------------------------------------------------------------------------------------*/
+    /**
+    *  Create an output file by reading data from the HTTPRequest stream as single lines.
+     * <p>
+     * This method may be invoked both by the client and the server for retrieving data contents
+     * sent over a HTTP connection, assuming length of data is less than 8K
+     * 
+     *  @param  request  Client's HTTP request containing the service parameters/values 
+     * @param  outFileName  name of file to be ctreated
+     * @param fileSize  maximum size of the file (that is: data in bytes to be read), <= 8k bytes
+     * 
+     * @return a byte array containing the  data read from the input stream
+     /*-----------------------------------------------------------------------------------------------------------------------*/
+    public static int createFileInChunkMode(HttpServletRequest request, String outFilename, int fileSize)
+  {
+          int offset = 0;
+          try
+          {
+            // create the directory if does not exist
+            File file = new File(outFilename);
+            file.getParentFile().mkdirs();      
+            
+            FileOutputStream  outStream = new FileOutputStream(outFilename);
+             ServletInputStream is = request.getInputStream();   
+             
+            int maxlen = DATA_CHUNK_SIZE;         // 8k size buffer for chunk reading of input stream
+            byte[] dataBytes = new byte[maxlen];       
+             int dataLen = 0;
+             
+             // read data line by line from the input stream
+             while (true)
+             {                 
+                 int len = is.readLine( dataBytes, 0, maxlen);                
+                  System.out.println("bytes of data read: " + len);
+                  dataLen += len;
+                  if (dataLen  >= fileSize)
+                      break;
+                 outStream.write(dataBytes, 0, len);
+                 dataLen += len;
+                 //System.out.println("Total number of bytes written to  output file: " + dataLen);
+              }
+              outStream.flush();
+              outStream.close();
+              log.info( "File " + outFilename + " successfully upoaded"); 
+              return 1;
+          }
+          catch (Exception e)
+          {
+              e.printStackTrace();
+              log.error("Error in uploading  file " + outFilename +" in chunked transfer"); 
+              return -1;
+          }     
+    }
+    
+     /*-----------------------------------------------------------------------------------------------------------------------*/
+    /**
+    * Create an output file by reading data from the Request channel in a "buffred read" mode. 
+    * <p>
+    *  This method is invoked from a servlet on the server side to create the file at the server node
+    *  It is assumed that the file length may be > 8K.
+    * 
+    * @param  request  Client's HTTP request containing the service parameters/values 
+    * @param  outFileName  name of file to be ctreated
+    * @param fileSize  maximum size of the file (that is: data in bytes to be read)
+    * 
+    * @return a byte array containing the  data read from the input stream
+    /*-----------------------------------------------------------------------------------------------------------------------*/
+    public static int createFileInBufferMode(HttpServletRequest request, String outFilename, int fileSize)
+    {
+        int status  = 1;
+        try
+        {
+            // create the directory if does not exist
+            File file = new File(outFilename);
+            file.getParentFile().mkdirs();      
+            
+            FileOutputStream  outStream = new FileOutputStream(outFilename);
+            ServletInputStream is = request.getInputStream();    
+
+            byte[] dataBytes = new byte[DATA_CHUNK_SIZE];    
+            int maxlen = DATA_CHUNK_SIZE;       // maximum length of data expected in a single read
+            int  bytesLeft = fileSize;
+            while (bytesLeft >0)
+             {
+                    int bytesToRead = Math.min(bytesLeft, maxlen);
+                    int count = is.read(dataBytes, 0, bytesToRead);
+                    
+                    // note: It was found that in a multi-file transfer, the first read block of the second and 
+                    // subsequent files are less than maxlen (by the size of previous file's last block.)
+                    // that is: lastBlock[file n] + firstBlock[file n+1] = maxlen
+                    if (count == 0)
+                    {
+                       log.error("Error in transmission of  upload data, Bytes expected " + bytesToRead +
+                          " Bytes read : " + count);
+                       status = -1;
+                        break;
+                    }
+                    // write out those same bytes
+                    outStream.write(dataBytes, 0, count);
+                    bytesLeft = bytesLeft-count;
+                    //System.out.println("bytes of data writtten: " + count + " Total bytes:  " +(fileSize-bytesLeft));
+
+            }
+            outStream.flush();
+            outStream.close();
+            log.info( "File " + outFilename + " successfully upoaded; fileSize = " + fileSize); 
+          }
+         catch (Exception e)
+          {
+              e.printStackTrace();
+              status = -1;
+          } 
+         return status;
+    }    
+}

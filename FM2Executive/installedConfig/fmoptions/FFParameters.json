@@ -1,0 +1,89 @@
+{
+"-- Change the version to your actual version number --"
+"FMLibVersion" : "05Sep2017",
+
+"---FaceFinder Options ---, all entries must match with FMLib parameters and constants defined in C++" : "",
+"XMLModelPath" : "<facematch.dir>/fm2server/FFModels/"
+"FaceModelFN" : "haarcascade_frontalface_alt2.xml",
+"ProfileModelFN" : "haarcascade_profileface.xml",
+
+
+"SkinColorMapperKind" : "ANN",
+"SkinColorParmFN" : "<facematch.dir>/fm2server/FFModels/ANN/NET_PL_9_15_50_90.18.ann.yml",
+
+
+"CRegDimMin" : 32,
+"CRegDimMax" : 512,
+
+"FaceDiameterMin" : 32,
+"FaceDiameterMax" : 512,
+"MinLandmarkDim" : 64,
+
+"SkinMassT" : 0.25, 
+"SkinLikelihoodT" : 0.5,
+"FaceAspectLimit" : 0.5,
+
+
+"FF_Flag_none": 0, 
+"FF_Flag_bits" : {		
+	"detection": 0,
+	"selective": 1, 
+	"rotation" : 2, 
+	"rotationMultiway" : 3,		
+	"cascade"  : 4,			
+	"visual"   : 5,			
+	"verbose"  : 6,
+	"HistEQ"  : 7,
+	"discard" : 8,
+	"ignoreFrontal" : 9,
+	"ignoreProfile" : 10,
+	"intersect" : 11,
+	"tight" : 12	
+	"sampling" : 13,
+	"skinClrFP" : 14,
+	"keepCascaded" 	: 15, 
+	"seekLandmarks"	: 16, 	
+	"seekLandmarksColor" : 17, 
+	"generateID" : 18,	
+	"visualSelective" : 19, 	
+	"saveScaled" : 20, 	
+	"saveSkinMap" : 21,
+	"saveFaces" : 22, 	
+	"subScaleCorrection" : 23,
+	"LiveFeed" : 24
+	},
+
+"FF_speedFlags"    : "selective|HistEQ|cascade|keepCascaded",
+"FF_optimalFlags"  : "selective|HistEQ|cascade|keepCascaded|rotation|seekLandmarks",
+"FF_accuracyFlags" : "selective|HistEQ|cascade|keepCascaded|rotation|rotationMultiway|seekLandmarks|seekLandmarksColor",
+"FF_landmarkFlags" : "selective|HistEQ|cascade|keepCascaded|rotation|seekLandmarks|seekLandmarksColor",	
+"FF_detectOn"      : "detection|selective",
+"FF_detectOff"     : "~detectOn",
+
+"--- following not used ---------" : "---",
+"---FF_defaultFlags---": "selective|HistEQ",
+"---FF_rotationFlags---": "selective|rotation|rotationMultiway|HistEQ",
+	
+
+"---FaceMatcher Options --- as power_of_2, from ImgDscMatcher.EImgDscNdxOptions" : "",
+"FM_Flag_none": 0,
+"FM_ImgDscNdxOptions" : {
+	"moNone"   : 0,
+	"moHistEq"   : 1,
+	"moGroupLabels"  : 2,
+	"dmBF" : 3,
+	"dmFlann"  : 4,
+	"dmOM" : 5,
+	"dmRank" : 6
+},
+
+"IndexType" : "DIST",
+"IndexVersion" : "V1",
+"IndexFileExtension" : ".ndx",
+"FM_defaultFlags" : 1,
+"DefaultWholeImgDim" : 256,
+"Match.Tolerance": 0.5,
+"Match.Maxnum" : 50,
+"-- Match.Type--" : "FLANN"
+}
+

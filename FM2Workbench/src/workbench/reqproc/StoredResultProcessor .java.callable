@@ -1,0 +1,379 @@
+/*
+ *  StoredResultProcessor 
+ */
+
+package workbench.reqproc;
+
+import fm2client.app.core.FM2RegionTest;
+
+import workbench.event.ActionCompletionListener;
+import workbench.reqproc.input.BatchInputSelectionDialog;
+import workbench.control.WBProperties;
+
+import workbench.display.DisplayUtils;
+import workbench.util.Utils;
+
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import java.util.HashMap;
+import java.util.Properties;
+
+import org.apache.log4j.Logger;
+import java.util.ArrayList;
+
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+import javax.swing.SwingUtilities;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ExecutionException;
+
+
+public class StoredResultProcessor implements  RequestProcessor
+{
+    
+    private static Logger log = Logger.getLogger(StoredResultProcessor.class);
+    
+        
+    protected static HashMap <String, String> External2InternalString = new HashMap<String, String>() {
+        {
+            put("Review Facefinding Result", "facefind");
+            put("Review Ingest Result", "regioningest");
+            put("Review Query Result", "regionquery");
+            put("Stored Result", "storedResult");
+        }
+    };
+    
+    //protected static BatchInputSelectionDialog batchInputPanel = null;
+
+     protected static JFrame userInputFrame = null;
+
+     protected ActionCompletionListener parent;
+     HashMap <String, Object> initialParams;
+     HashMap <String, Object> selectedParams;
+    
+    public StoredResultProcessor ()  throws Exception
+    {
+                initialParams = getInitialBatchInputParams();
+    }
+        
+    //*-------------------------------------------------------------------------------------------------------------
+    // Create the input Selection panel.
+    // Check for parameters specified in the config file
+    // and set as initial parameters.  Provide defaults if not specified
+    //*---------------------------------------------------------------------------------------------------------------
+     protected HashMap<String, Object>  getInitialBatchInputParams()
+     {
+         String fileSystemRoot = Utils.getFileSystemRoot();
+        HashMap<String, Object> batchParams = new HashMap();
+       
+         Properties configProperties = WBProperties.configProperties;
+         String testDataDir =  configProperties.getProperty("fm2test.datadir", fileSystemRoot);
+         if (testDataDir != null)
+                batchParams.put("testDataDir", testDataDir);
+         //Select file with BatchRequest data
+         
+        // show the checkbox whether or not to store FaceMatch return results
+         String resultStoreDir = configProperties.getProperty("fm2test.resultstore.dir", fileSystemRoot);
+         if (resultStoreDir != null)
+                batchParams.put("resultStoreDir", resultStoreDir);
+        
+         ArrayList <String> collections = new ArrayList();
+         collections.add("Please Specify...");
+         collections.add("IN TEST DATA");
+         String collectionNames =  configProperties.getProperty("fm2test.imageCollection", "");
+         if (collectionNames != null)
+         {
+            String[] imageCollections = collectionNames.split("\\W*,\\W*");
+            for (int i =0; i < imageCollections.length; i++)
+                collections.add(imageCollections[i]);
+         }
+
+         String[]  collectionList = new String[collections.size()];
+        collections.toArray(collectionList);
+         batchParams.put("imageCollection", collectionList);
+         
+         String testType =  configProperties.getProperty("operationType", "Face Find");
+         batchParams.put("operationType", testType); 
+         
+        batchParams.put("displayResults", new Boolean(true));
+        batchParams.put("storeResults", new Boolean(true));
+
+         return batchParams;
+      }
+     
+
+    //---------------------------------------------------------------------------------------------------------------------------
+     // Execute the Menu command selectedby the user 
+     // invoked by the parent object 
+     //---------------------------------------------------------------------------------------------------------------------------
+ /*    public void executeCommand(ActionCompletionListener listener,  String command, Object commandParam)
+     {
+         try
+         {
+                 parent = listener;
+                  
+                  Thread t = new Thread(new Runnable() {
+                    public void run() {
+                     BatchInputSelectionDialog inputSelectionDialog = createInputSelectionDialog();
+                     inputSelectionDialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+                     inputSelectionDialog.addWindowListener(new MyWindowAdapter());
+                     inputSelectionDialog.setInitialChoices(command, initialParams);
+                    // inputSelectionDialog.pack();
+                     inputSelectionDialog.toFront();
+                     inputSelectionDialog.start();
+
+                     // We will get the selected params only after the Dialogbox closes
+                      selectedParams  =  inputSelectionDialog.getSelectedParams();
+                  //  System.out.println("\n>>> Selected params: " + selectedParams);
+               }
+         });
+          t.start();
+         System.out.println("\n>>> Selected params: " + selectedParams);
+          if (selectedParams == null)
+           {
+                System.out.println("\n>>> User canceled operation");
+                notifyCompletion(command, 0, null);
+                return;
+           }
+           int status =  performBatchOperations(command, selectedParams);
+           notifyCompletion( command, status, null);
+         }
+         catch (Exception e)
+         {
+             e.printStackTrace();
+            notifyCompletion( command, -1, null);
+         }
+    }    */
+     
+     
+    public void executeCommand(ActionCompletionListener listener,  String command, Object commandParam)
+    {
+        try
+        {
+             DialogClass  dialog  = new DialogClass(command, initialParams);
+             //dialog.call();
+             
+             // blocks
+             selectedParams = dialog.getInput();
+
+            // Now perform the function
+            System.out.println("\n>>> Selected params: " + selectedParams);
+            if (selectedParams == null)
+            {
+                  System.out.println("\n>>> User canceled operation");
+                  notifyCompletion(command, 0, null);
+                  return;
+            }
+           int status =  performBatchOperations(command, selectedParams);
+           notifyCompletion( command, status, null);
+        }
+        
+        // Error processing
+         catch (InterruptedException e)
+         {
+              e.printStackTrace();
+          }
+        catch (ExecutionException e) 
+        {
+          e.printStackTrace();
+        }
+         catch (Exception e)
+         {
+             e.printStackTrace();
+         }
+          notifyCompletion( command, -1, null);
+    }    
+      
+      
+     protected class DialogClass implements Callable<HashMap<String, Object>>
+     {
+         private final String operation;
+         private HashMap <String, Object> startParams;
+          BatchInputSelectionDialog inputSelectionDialog = null ;
+         
+         public DialogClass(String command,   HashMap <String, Object>params )
+         {
+             operation = command;
+              startParams = params;
+         }
+           public   HashMap <String, Object>  call() throws Exception
+           {
+               System.out.println(">>> In Dialog Class call");
+               if (inputSelectionDialog == null)
+               {
+                inputSelectionDialog = createInputSelectionDialog();
+                 inputSelectionDialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+                 inputSelectionDialog.addWindowListener(new MyWindowAdapter());
+                 inputSelectionDialog.setInitialChoices(operation, startParams);
+                // inputSelectionDialog.pack();
+                 inputSelectionDialog.toFront();
+                 //
+                 return inputSelectionDialog.getSelectedParams();
+               }
+               else
+               {
+                   System.out.println(">> Ignoring second call to create  inputSelectionDialog");;
+                    return inputSelectionDialog.getSelectedParams();
+               }
+                   
+           }
+           
+           public HashMap <String, Object> getInput()   throws InterruptedException, ExecutionException, Exception
+           {
+                FutureTask<HashMap<String, Object>> dialog = new FutureTask<>(this);
+                SwingUtilities.invokeLater(dialog);
+
+                HashMap <String, Object> selection = call();
+                inputSelectionDialog.start();
+               inputSelectionDialog.dispose();
+               System.out.println(" Disposing dialog");
+               return selection;
+           }
+     }
+     /*--------------------------------------------------------------------------------------------------------------*/
+     
+    // build the dialog  to receive user input for performing Batch operation requests
+    protected BatchInputSelectionDialog  createInputSelectionDialog()
+    {
+        String dialogName = "FaceMatch2 StoredResultDisplay Request Frame";
+        //String displayName = " Select parameters for FaceMatch Region Operation Requests in Batch mode";
+        
+        userInputFrame = new JFrame(dialogName);
+        //batchInputFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);              // hide it for next time
+        
+        // TBD: new Dialog
+       BatchInputSelectionDialog userInputDialog =
+           new BatchInputSelectionDialog(userInputFrame,  initialParams);
+
+       // setFrameCenter(inputSelectionFrame, inputSelectionFrame.getPreferredSize());
+        userInputFrame.setLocation(50, 50);
+        userInputFrame.pack();
+        return userInputDialog;
+    }
+/*--------------------------------------------------------------------------------------------------------------*/
+
+    protected int   performBatchOperations(String command,  HashMap<String, Object> requestParams)  throws Exception
+     {
+        String imageCollection = (String) requestParams.get("imageCollection");
+        String  testDataFile = (String) requestParams.get("batchDataFile");
+        boolean displayResult = ((Boolean)requestParams.get("displayResults")).booleanValue();
+        boolean storeResult = ((Boolean)requestParams.get("storeResults")).booleanValue();
+        
+         String resultStoreDir = null;
+        if (storeResult)
+        {
+            resultStoreDir = (String) requestParams.get("resultStoreDir");
+        }
+            
+       String operation = command;
+        final String fm2testType = External2InternalString.get(operation);
+        if (fm2testType == null)
+        {
+            DisplayUtils.displayErrorMessage("Internal Error; Internal name for operation "+ command + " not found." );
+            return 0;
+        }
+
+        try
+        {
+            // iconify self
+           // inputSelectionFrame.setState(JFrame.ICONIFIED);
+           
+             boolean realtime = false;                // stored data      
+             boolean displayResults = true;              //default  set to true; currently   crashes on false;
+            FM2RegionTest regionTestApp = new FM2RegionTest(WBProperties.configProperties, realtime);
+            regionTestApp.setImageCollection(imageCollection);
+            regionTestApp.performFacematchTests(fm2testType, testDataFile, displayResults, resultStoreDir, false);
+            return 1;
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+           return -1;
+        }
+    }
+    
+     /*-----------------------------------------------------------------------------------------*/   
+    protected class MyWindowAdapter extends WindowAdapter
+     {
+         public void windowClosing(WindowEvent e) {
+             System.out.println("Received Window closing event");
+             BatchInputSelectionDialog dialog = (BatchInputSelectionDialog) (e.getWindow());
+            selectedParams  =dialog.getSelectedParams();
+              
+            String[] choices = {"Exit", "Cancel"};
+           int option = fm2client.analyzer.display.DisplayUtils.displayConfirmationMessage("Do you want to exit? ", choices);
+            if (option == 0)
+                dialog.dispose();
+         }
+    }
+
+
+
+    //---------------------------------------------------------------------------------------------------------------------------
+    // Batch input action is completed. Either used "submitted" the choices or wants to quit
+    //
+ /*   public void actionCompleted(ActionCompletionEvent event)
+    {
+        if (event.getEventType() == ActionCompletionEvent.BATCH_OPS_SELECTION_EVENT)
+        {
+            int status  = event.getStatus();
+            if (status == 0)            // user wanted to exit without doing the function
+            {
+               batchInputFrame.setVisible(false);
+            }
+            else if (status == 1)
+            {
+               performFM2BatchRequests(event.getActionCommand(), event.getReturnParams());
+            }
+            notifyCompletion(event.getFunctionType(), status, null);
+        }
+    }
+*/  
+ /* *********************************************************************************************/
+    // Handover operations to the RegionTest App  with user provided parameters
+    protected void performFM2BatchRequests( String opsType, HashMap<String, Object> requestParams)
+    {
+        String imageCollection = (String) requestParams.get("imageCollection");
+        String  batchDataFile = (String)requestParams.get("batchDataFile");
+        boolean displayResult = ((Boolean)requestParams.get("displayResults")).booleanValue();
+        boolean storeResult = ((Boolean)requestParams.get("storeResults")).booleanValue();
+        
+         String resultStoreDir = null;
+        if (storeResult)
+        {
+            resultStoreDir = (String) requestParams.get("resultStoreDir");
+        }
+        String fm2testType = External2InternalString.get(opsType);
+        if (fm2testType == null)
+        {
+            DisplayUtils.displayErrorMessage("Internal Error; Internal name for operation "+ opsType + " not found." );
+            return;
+        }
+        try
+        {
+            // iconify the input selection panel
+            userInputFrame.setVisible(false);
+            boolean realtime = true;            // not from stored data
+            FM2RegionTest regionTestApp = new FM2RegionTest(WBProperties.configProperties, realtime);
+            if (!regionTestApp.isValidConnection())
+            {
+                DisplayUtils.displayErrorMessage("FaceMatch Server is not currently available");
+                return;
+            }
+            regionTestApp.setImageCollection(imageCollection);            
+            regionTestApp.performFacematchTests(fm2testType, batchDataFile, displayResult, resultStoreDir, true);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+      public  void notifyCompletion(String function, int status, Object param)
+     {
+        ; // parent.actionCompleted(null);
+     }
+}

@@ -1,0 +1,165 @@
+
+
+const char* getString(JNIEnv *env, jobjectArray jstringArray, int index)
+{
+	jstring jstr = (jstring)env->GetObjectArrayElement(jstringArray, index);
+	return (env->GetStringUTFChars(jstr, NULL));
+}
+
+
+// ingest images and get indexing files for all images in a given list
+JNIEXPORT jstring JNICALL Java_fm_FaceMatchJavaInterface_ingest
+	(JNIEnv *env, jclass clazz, jlong frdHandle, jstring jimageFilename, jobjectArray jMatchMode){
+		cout<<"ingest1"<<endl;
+		
+		// allocate Strings locally
+		const char* cImageFile = env->GetStringUTFChars(jimageFileName, NULL);
+
+	/*	const char* cXMLModelPath  = env->GetStringUTFChars(jXMLModelPath, NULL);
+		const char* cFaceModelFN  = env->GetStringUTFChars(jFaceModelFN, NULL);
+		const char* cProfileModelFN  = env->GetStringUTFChars(jProfileModelFN, NULL);
+		const char* cSkinColorMapperKind  = env->GetStringUTFChars(jSkinColorMapperKind, NULL);
+		const char* cSkinColorParmFN  = env->GetStringUTFChars(jSkinColorParmFN, NULL);
+		const char* cInfdexFileNameBase = 	env->GetStringUTFChars(jIndexFilenameBase, NULL);	
+		*/
+
+			cout<<"loop about NDX and match modes"<<endl;
+			int modeCnt = env->GetArrayLength(jMatchMode);
+			int k = 0;
+			while(k < modeCnt)
+			{
+				string mode =  getString(env, jMatchMode, k++);
+				string IndexFilename = IndexFilenameBase+"."+mode+".ndx.out";
+				string NdxOutFN = IndexFilename;
+				string NdxInFN;
+				cout<<IndexFilenameBase<<endl<<mode<<endl;
+
+				if(ifstream(IndexFilename).good())
+					NdxInFN=IndexFilename;
+
+				cout<<"working with 1"<<IndexFilename<<endl;
+
+				ImageMatcher & IM = (ImageMatcher&)getFaceMatcher(NdxInFN, mode, ImgNormDim,
+					FaceFinderFlags, XMLModelPath, FaceModelFN, ProfileModelFN,
+					SkinColorMapperKind, SkinColorParmFN,
+					FaceDiameterMin, FaceDiameterMax,
+					SkinMassT, SkinLikelihoodT, MinAspect,
+					ImageMatcherFlags, preferGPU);
+
+				if (!LabelDelimiter.empty()) IM.LabelDelimiter(LabelDelimiter);
+					try
+					{
+						string QueryResult, ImgPath = RepoPath+request;
+						unsigned cnt = 0;
+
+						TIMELOG("modeIngest");
+						stringstream strmReq(request);
+						string ImgID; getline(strmReq, ImgID, '\t');
+						stringstream strmRgns;
+						for (unsigned ID=0; !strmReq.eof(); ++ID)
+						{
+
+							jobjectArray publication = env->NewObjectArray(1, c, post);
+							jmethodID publish = env->GetMethodID(clazz, "publish", "([Ljava/lang/Object;)V");
+							env->CallObjectMethod(worker,publish,publication);
+							cout<<"reading file"<<endl;
+							try
+							{
+								FaceRegion fr(strmReq);
+								if (fr.area()) strmRgns<<ImgID<<":"<<ID<<"\t"<<fr<<"\n";
+							}
+							catch (const FaceMatch::Exception & e)
+							{
+								string attr; strmReq>>attr;
+								clog<<"skipping "<<attr<<endl;
+							}
+							catch(const exception & e)
+							{
+								cerr<<"exception: "<<e.what()<<endl
+									<<"during request: "<<request<<endl;
+								if (ImgLstFN.empty()) cerr<<"enter '?' or 'h' to see help"<<endl;
+							}
+							strmReq>>ws; // eat the white space
+						}
+						string Rgns = strmRgns.str();
+						if (Rgns.empty()) Rgns = ImgID;
+						cnt = IM.ingest(RepoPath+ImgID, Rgns, ImgVar);
+						//	cout<<request<<" ingested "<<cnt<<" descriptors"<<endl;
+					}
+
+					catch(const exception & e)
+					{
+						cerr<<"exception: "<<e.what()<<endl
+							<<"during request: "<<request<<endl;
+						if (ImgLstFN.empty()) cerr<<"enter '?' or 'h' to see help"<<endl;
+					}
+					catch(const SpecialChar & c)
+					{
+						cerr<<"SpecialChars exception: "<<c<<endl;
+						break;
+						cout<<endl; // concluding newline
+
+					}
+				}
+				IM.save(NdxOutFN);
+			}
+		}
+		catch(const exception & e)
+		{
+			cerr<<"exception: "<<e.what()<<endl;
+			return 0;
+		}
+		catch(...)
+		{
+			cerr<<"unknown exception"<<endl;
+			return 0;
+		}
+
+		cout<<"ingest done";
+		return 0;
+}
+
+
+static ImageMatcher & getFaceMatcher(FaceRegionDetector& frd, const string & IndexFilename, 
+									 const string & fmMode, 
+									 unsigned ImgNormDim,
+									 unsigned FaceFinderFlags,					 
+									 unsigned flags)
+{
+	if (fmMode=="HAAR") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexHaarFace> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="SIFT") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSIFT> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="SIFT.FL") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSIFTFL> >(IndexFilename, FRD, FaceFinderFlags|FaceFinder::cascade, ImgNormDim, flags);
+	else if (fmMode=="SURF") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSURF> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="SURF.FL") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSURFFL> >(IndexFilename, FRD, FaceFinderFlags|FaceFinder::cascade, ImgNormDim, flags);
+	else if (fmMode=="SUFT") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSUFT> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="SIRT") 
+		return singletonFM< ImageMatcherFaceRegionsBase<SigIndexSIRT> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="ORB") 
+		return singletonFM <ImageMatcherFaceRegionsBase<SigIndexORB> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="ORB.FL") 
+		return singletonFM <ImageMatcherFaceRegionsBase<SigIndexORBFL> >(IndexFilename, FRD, FaceFinderFlags|FaceFinder::cascade, ImgNormDim, flags);
+	else if (fmMode=="LBPH") 
+		return singletonFM<ImageMatcherFaceRegionsBase<SigIndexLBPH> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="RSILC") 
+		return singletonFM <ImageMatcherFaceRegionsBase<SigIndexRSILC> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="MANY") 
+		return singletonFM<ImageMatcherFaceRegionsBase<SigIndexMany> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="DIST") 
+		return singletonFM<ImageMatcherFaceRegionsBase<SigIndexManyDist> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else if (fmMode=="RANK") 
+		return singletonFM<ImageMatcherFaceRegionsBase<SigIndexManyRank> >(IndexFilename, FRD, FaceFinderFlags, ImgNormDim, flags);
+	else throw FaceMatch::Exception("unknown face match mode "+fmMode);
+}
+
+template<class T>
+static T & singletonFM(const string & NdxFN, FaceRegionDetector & FRD, unsigned FaceFinderFlags, unsigned ImgNormDim, unsigned flags)
+{
+	StaticLkdCtor T matcher(NdxFN, FRD, FaceFinderFlags, ImgNormDim, flags);
+	return matcher;
+}

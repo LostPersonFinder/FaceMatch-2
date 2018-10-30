@@ -1,0 +1,18 @@
+//detect faces
+		unsigned const int defaultFaceFinderOptions = FaceMatch::FaceFinder::selective|FaceMatch::FaceFinder::HistEQ|FaceMatch::FaceFinder::rotation;
+		
+		unsigned int flags = defaultFaceFinderOptions;
+		
+		//favor speed
+		if(performanceOption == 0)
+			flags = FaceMatch::FaceFinder::selective | FaceMatch::FaceFinder::HistEQ | FaceMatch::FaceFinder::cascade | FaceMatch::FaceFinder::keepCascaded;
+		//favor optimum (checks for rotation)
+		else if(performanceOption == 1)
+			flags = FaceMatch::FaceFinder::selective | FaceMatch::FaceFinder::HistEQ | FaceMatch::FaceFinder::cascade | FaceMatch::FaceFinder::keepCascaded 
+			| FaceMatch::FaceFinder::rotation | FaceMatch::FaceFinder::seekLandmarks;
+		//favor accuracy
+		else if(performanceOption == 2)
+			flags = FaceMatch::FaceFinder::selective | FaceMatch::FaceFinder::HistEQ | FaceMatch::FaceFinder::cascade | FaceMatch::FaceFinder::keepCascaded 
+			| FaceMatch::FaceFinder::rotation | FaceMatch::FaceFinder::seekLandmarks 
+			| FaceMatch::FaceFinder::rotationMultiway | FaceMatch::FaceFinder::seekLandmarksColor;
+			

@@ -1,0 +1,34 @@
+---------------------------------------------------
+--- Example of 
+-- Creating a new Image Extent (e.g. PL Event) ---
+---------------------------------------------------
+
+-- Cd to FaceMatch2 latest install directory <installDir>
+
+-- Create and initialize the FM2 database, add Client if not already created
+
+-- Perform setup for operation (or testing)
+
+
+-- >>> Start up the WEBFM2 server under Tomcat
+-- Deploy WebFM2 if not already running
+-- Check status by: http://<hostname>::8080/webfm2/   
+-- If a new Client, add client as shown below:
+
+---------------------------------------------------------------------------
+-- Adding a new Client to FM2 
+-- Clients are added via the Admin Service of WebFM2, as follows:
+
+cd $OPS_DIR
+-- Create a client-specific description file <ClientName>_ClientInfo.json, using the template
+
+cd Setup/PL
+createClientPL.sh
+
+-- Similarly set up another client
+---------------------------------------------
+
+-- Set up all PL Extents
+-- ./createExtentsPL_1-10.sh
+-- ./createExtentsPL_11-23.sh
+

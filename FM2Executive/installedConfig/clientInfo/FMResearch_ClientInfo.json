@@ -1,0 +1,40 @@
+{
+	"COMMENT" : "Key, Storage, and Metadata Fields for client FMResearch - to be stored in the database",
+	"clientname" : "FMResearch",
+	"data" :  [
+		{
+			"type" : "info",
+			"description": "For performing various reseach related tests for FM2", 
+			"key" : "my-key2",
+			"thumbnails" : true
+		},
+		{
+			"type"	: "storage",
+			"description" : "Root paths for FMResearch image index descriptor files and thumbnails",
+			"indexRoot" : "<DataStore>/index/fmresearch",
+			"thumbnailRoot" :  "<DataStore>/thumbnail/fmresearch"
+			
+		},
+		{
+			"type" : "metadata",
+			"field" :  [
+				{
+					"name" : "gender", 
+					"type" : "String",
+					"valid_set" : "male|female|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "gender of person"
+				},
+				{
+					"name" : "agegroup",
+					"type" : "String",
+					"valid_set" : "adult|child|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "age group of person in the image"
+				}
+			]
+		}
+	]
+}

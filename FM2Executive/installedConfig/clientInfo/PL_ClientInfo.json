@@ -1,0 +1,40 @@
+{
+	"COMMENT" : "Key, Storage, and Metadata Fields for client PL - to be stored in the database",
+	"clientname" : "PL",
+	"data" :  [
+		{
+			"type" : "info",
+			"description": "Lost Person FaceMatch from PeopleLocator at CEB/NLM", 
+			"key" : "key1",
+			"thumbnails" : false
+		},
+		{
+			"type"	: "storage",
+			"description" : "Root paths for PL image index descriptor files and thumbnails",
+			"indexRoot" : "<DataStore>/index/pl",
+			"thumbnailRoot" : ""
+			
+		},
+		{
+			"type" : "metadata",
+			"field" :  [
+				{
+					"name" : "gender", 
+					"type" : "String",
+					"valid_set" : "male|female|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "gender of person"
+				},
+				{
+					"name" : "agegroup",
+					"type" : "String",
+					"valid_set" : "adult|child|unknown",
+					"default_value" : "unknown",
+					"is_searchable" : true,
+					"note" : "age group of person in the image"
+				}
+			]
+		}
+	]
+}

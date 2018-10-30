@@ -1,0 +1,34 @@
+Standard Locations of various FaceMatch related components required to compile the FaceMatch Lib.
+May be different in different installation Systems
+
+
+	pkg-config -> /usr/bin/pkg-config
+
+
+	PKG_CONFIG_PATH  -> /usr/local/lib/pkgconfig   -- defined in .bashrc
+
+	LD_LIBRARY_PATH  -> usr/local/lib/opencv:/usr/local/cuda/lib64  -- defined in .bashrc
+
+
+	opencv.pc -> /usr/local/lib/pkgconfig -- contains the "cflags" (include directories) and 
+	"Libs:" (name of libraries and paths) used by opencv applications 
+
+	
+/usr/local/include/opencv and opencv2) -> all opencv include files
+
+
+	usr/local/cuda => usr/local/cuda-6.5) -> All cuda related include, bin, shared libraries etc.
+
+	/usr/local/lib/libopencv_xxx.so.2.4.n -> All opencv 2.4.n shared libraries
+
+
+
+
+Note: To see the references (names of functions) used by a .so module,  use 
+nm -D xxx.so
+
+
+To see the path dependencies of a shared Library on other shared libraries, use: ldd xxx.so
+
+
+

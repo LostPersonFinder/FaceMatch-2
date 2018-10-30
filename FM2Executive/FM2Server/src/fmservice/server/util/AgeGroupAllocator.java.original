@@ -1,0 +1,135 @@
+/*
+ * This Singletonclass determines the agegroup of a person  (for search), based upon his/her biological age
+ *
+ */
+package fmservice.server.util;
+
+import  fmservice.httputils.common.ServiceConstants;
+
+/**
+ *
+ *
+ */
+public class AgeGroupAllocator implements ServiceConstants
+{
+    private  static AgeGroupAllocator agDeterminant = null; 
+    private static String[] ageGroups;
+    
+    //----------------------------------------------------------------
+    public static AgeGroupAllocator getInstance() 
+    {
+        if (agDeterminant == null)
+            agDeterminant =  new AgeGroupAllocator();
+        return agDeterminant;
+    }
+    //----------------------------------------------------------------
+   // protected  void AgeGroupDeterminant()
+    protected  AgeGroupAllocator()
+    {
+        int numGroups = (MAXIMUM_AGE - MINIMUM_AGE)/AGE_GROUPING_INTERVAL;
+        if  ((MAXIMUM_AGE % AGE_GROUPING_INTERVAL) == 0)
+              numGroups += 1;  
+
+        ageGroups = new String[numGroups];
+        for (int i = 0; i < numGroups; i++)
+        {
+            int start = AGE_GROUPING_INTERVAL * i;
+            int end = start+AGE_GROUPING_INTERVAL-1;
+            if (end > MAXIMUM_AGE)
+                end = MAXIMUM_AGE;
+            ageGroups[i] = start+"-"+end;
+        }
+    }
+    
+    //-------------------------------------------------------------------
+    public  String[]  getAllAgeGroups()
+    {   
+        return ageGroups;
+    }
+
+     //--------------------------------------------------------------------------
+     public  int getAgeGroupSlot (int age)
+    {
+         int currentGroup = -1;
+        
+        for (int i = 0; i < ageGroups.length; i++)
+        {
+            String[] limits = ageGroups[i].split("-");
+            int lower = Integer.valueOf(limits[0]).intValue();
+            int upper =  Integer.valueOf(limits[1]).intValue();
+            if (age >= lower && age <= upper)
+                return i;
+        }
+        return -1;
+    }
+     
+     public  String getAgeGroup (int age)
+    {
+        int sn= getAgeGroupSlot (age);  // slot number
+        if (sn == -1)
+            return null;
+        else
+            return ageGroups[sn];        
+      }
+    
+  
+         //--------------------------------------------------------------------------
+     public  String getNextAgeGroup (int age)
+    {
+        int sn = getAgeGroupSlot (age);
+        if ( sn == -1 || sn == ageGroups.length-1)    // the last one
+            return null;        // invalid age or no more slots
+        else 
+            return ageGroups[sn+1];        
+      }
+    
+     //--------------------------------------------------------------------------
+       public  String getPrevAgeGroup (int age)
+    {
+        int sn = getAgeGroupSlot (age);
+        if ( sn == -1 || sn == 0)    // the first one
+            return null;        // invalid age or no more slots
+        else 
+            return ageGroups[sn-1];        
+      }
+
+     //------------------------------------------------------------------------
+     // Get the age group adjacent to the given age.
+     // The algorithm is as folloes:
+     // If the age is below the median in that slot, return the lower one
+      // If it is equal to or above the median, return the upper one
+      //--------------------------------------------------------------------------
+     public  String getNearestAgeGroup (int age)
+    {
+         int median = age % AGE_GROUPING_INTERVAL;
+         if (median < (AGE_GROUPING_INTERVAL/2))
+             return getPrevAgeGroup(age);
+         else
+             return getNextAgeGroup(age);
+    }              
+     //--------------------------------------------------------------------------
+    
+    public static void  main(String[] args)
+    {
+        
+        // Show the age groups    
+        String outStr = ("Age groups are: " );
+        
+        AgeGroupAllocator agDet = AgeGroupAllocator.getInstance();
+        String[]  ageGroups = agDet.getAllAgeGroups();
+        for (int i = 0; i < ageGroups.length; i++)
+            outStr += ageGroups[i]+", ";
+        System.out.println(outStr); 
+        
+        // convert a few ages to its group
+        int[] ages = {0, -1 -20, 5, 35, 100, 130, 120, 30, 40, 43, 47, 99, 101}; 
+
+        for (int i = 0; i < ages.length; i++)
+        {
+            int age = ages[i];
+            System.out.println( "\n>> Age: " + ages[i] + ", AgeGroup: " +  agDet.getAgeGroup(age));
+            System.out.println("Previous Group: " + agDet.getPrevAgeGroup(age) +", Next Group: " + agDet.getNextAgeGroup(age) 
+                            + ", NearestAgeGroup: "  + agDet.getNearestAgeGroup(age));
+        }
+    }
+}

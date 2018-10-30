@@ -1,0 +1,73 @@
+
+To operate and test under the FM2 system, the steps are:
+  a) As FM2 admin,  Create/initialize the MySQL database, 
+  b) create one or more FM2 clients using FM2 Admin service
+  c) AS a FM2 client, create one or more Image Extents 
+  
+
+-----------------------------------------------------------------
+1) Create and initialize the FM2 database.
+-------------------------------------------------------------------
+    $ cd <Topdir>/fm2server/config/sql		# top dir is where FM2 is being installed 
+    
+    -- log in as MySQL admin 
+    $ mysql -u root -p <root_password>		# root password
+	
+    -- Excute the create_facematchDB_user.sql script to create the new database
+    > source create_facematchDB_user.sql
+    > show databases (-- check for the new database)
+    > exit
+
+    -- read create_facematchDB_user.sql for database name, user name, pasword
+
+    $ mysql -u fm2master FM2DB -p <db_password>
+    > source init_fmdb.sql;
+    -- check for database table names, fmadmin table and index type registry (though the last not used)
+	> show tables;
+	> select * from fmadmin;
+	> exit
+
+
+-------------------------------------------------------------------
+2) Shared libraries
+-------------------------------------------------------------------
+Copy the shared libraries (.so) from their build directory <build_dir> to <shared_lib_loc>
+which should be in the LD_LIBRARY_PATH
+
+> cp <build_dir>/libcommon.so <shared_lib_loc>
+> cp <bild_dir>/libFaceMatchLibJni.so <shared_lib_loc>
+
+Update LD_LIBRARY_PATH in .bashrc to inclde the directory <shared_lib_loc>, if necessary
+
+-------------------------------------------------------------------
+2) Create a Client (such as PL or FMTest or FMesearch)
+-------------------------------------------------------------------
+   > Create a JSON file (using the template   ClientInfoTemplate.JSON) and store it in <build_dir>FM2Server/config/ClientInfo
+   --It provides the name, description, FM2 assigned key, storage location, metadata info etc. for the client
+
+   -- Submit it to FM2 Web server as an administrative service request
+    > Run the WebFM2 server under Tomcat, if not already running
+	> Check for log message under Tomcat Log for successful startup
+    > Check for status using Web browser https://<hostname>:8080/webfm2/status
+	> Execute the admin Command  which sends the request to FM2 Server to create this client
+	-- This allows the addition of a new Client (by FM2 Admin only) without taking down the server
+	-- Information about the cliet can be checked by SQL query (select * from fmclient where name = "xxx"
+
+-------------------------------------------------------------------
+3) Create one or more ImageExtents for a given Client
+-------------------------------------------------------------------
+
+d) Submit various FM2 service requests to the WebServer
+e) Display Server returned status and if success, display/store accompanying results
+
+--------------------------------------------------------------------
+4) Submitting the webfm2.war file to Tomcat:
+-----------------------------------------------------------------
+> connect to the Tomcat manager (as admin)
+	fm2.nlm.nih.gov:8080/manager/html
+
+> submit the war file webfm2.war
+	(make sure its web.xml has the 'facematch-config' <param-value> set to: <ops_dir>/webfm2/webfm2server.cfg
+
+
+    
